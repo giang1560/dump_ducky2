@@ -258,7 +258,6 @@ MonoBehaviour:
   - level2
   - level3
   autoLoadFirstLevel: 1
-  showDebugInfo: 1
   completionPopup: {fileID: 50224938}
 --- !u!114 &152043375
 MonoBehaviour:
@@ -724,7 +723,7 @@ Transform:
   m_GameObject: {fileID: 621164630}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5, y: 5, z: 0}
+  m_LocalPosition: {x: -4.5, y: 4.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
