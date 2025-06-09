@@ -20,7 +20,6 @@ public class MapManager : MonoBehaviour
     void LoadAllMaps()
     {
         string jsonContent = LoadFromStreamingAssets();
-
         if (string.IsNullOrEmpty(jsonContent))
         {
             Debug.LogError("Failed to load JSON file!");
@@ -32,10 +31,7 @@ public class MapManager : MonoBehaviour
         {
             jsonContent = jsonContent.Trim();
             if (debugMode)
-            {
                 Debug.Log($"Loading JSON from: {jsonFileName}");
-                Debug.Log($"JSON Preview: {jsonContent.Substring(0, Mathf.Min(200, jsonContent.Length))}...");
-            }
 
             allMaps = JsonConvert.DeserializeObject<MapCollection>(jsonContent);
 
@@ -47,12 +43,13 @@ public class MapManager : MonoBehaviour
             }
 
             ValidateMaps();
-            if (debugMode) Debug.Log($"Successfully loaded {allMaps.maps.Count} maps");
+
+            if (debugMode)
+                Debug.Log($"Loaded {allMaps.maps.Count} maps");
         }
         catch (System.Exception e)
         {
             Debug.LogError($"JSON parsing error: {e.Message}");
-            Debug.LogError($"JSON content: {jsonContent}");
             CreateFallbackMap();
         }
     }
@@ -61,20 +58,18 @@ public class MapManager : MonoBehaviour
     {
         string path = Path.Combine(Application.streamingAssetsPath, jsonFileName);
 
+        if (!File.Exists(path))
+        {
+            Debug.LogError($"JSON file not found: {path}");
+            return "";
+        }
+
         try
         {
-            if (File.Exists(path))
-            {
-                string content = File.ReadAllText(path);
-                if (debugMode) Debug.Log($"Successfully read file: {path}");
-                return content;
-            }
-            else
-            {
-                Debug.LogError($"JSON file not found: {path}");
-                Debug.LogError("Make sure to place your JSON file in StreamingAssets folder!");
-                return "";
-            }
+            string content = File.ReadAllText(path);
+            if (debugMode)
+                Debug.Log($"Read file: {path}");
+            return content;
         }
         catch (System.Exception e)
         {
@@ -89,36 +84,19 @@ public class MapManager : MonoBehaviour
         {
             MapData map = allMaps.maps[i];
 
-            // Validate basic properties
-            if (string.IsNullOrEmpty(map.id))
+            if (string.IsNullOrEmpty(map.id) || map.tiles == null || map.tiles.Count == 0 || map.width <= 0 || map.height <= 0)
             {
-                Debug.LogWarning($"Map at index {i} has no ID - removing");
+                Debug.LogWarning($"Invalid map at index {i} ('{map?.id ?? "null"}') - removing");
                 allMaps.maps.RemoveAt(i);
                 continue;
             }
 
-            if (map.tiles == null || map.tiles.Count == 0)
-            {
-                Debug.LogWarning($"Map '{map.id}' has no tiles - removing");
-                allMaps.maps.RemoveAt(i);
-                continue;
-            }
-
-            if (map.width <= 0 || map.height <= 0)
-            {
-                Debug.LogWarning($"Map '{map.id}' has invalid dimensions - removing");
-                allMaps.maps.RemoveAt(i);
-                continue;
-            }
-
-            // Fix dimension mismatches
             if (map.tiles.Count != map.height)
             {
                 Debug.LogWarning($"Map '{map.id}' height corrected: {map.height} -> {map.tiles.Count}");
                 map.height = map.tiles.Count;
             }
 
-            // Validate each row
             for (int row = 0; row < map.tiles.Count; row++)
             {
                 if (map.tiles[row] == null)
@@ -133,16 +111,17 @@ public class MapManager : MonoBehaviour
                 }
             }
 
-            if (debugMode) Debug.Log($"✓ Map '{map.id}' validated: {map.width}x{map.height}");
+            if (debugMode)
+                Debug.Log($"Validated map '{map.id}': {map.width}x{map.height}");
         }
     }
 
     void CreateFallbackMap()
     {
-        Debug.Log("Creating fallback map...");
-
-        allMaps = new MapCollection();
-        allMaps.maps = new System.Collections.Generic.List<MapData>();
+        allMaps = new MapCollection
+        {
+            maps = new System.Collections.Generic.List<MapData>()
+        };
 
         MapData fallbackMap = new MapData
         {
@@ -152,25 +131,26 @@ public class MapManager : MonoBehaviour
             tiles = new System.Collections.Generic.List<System.Collections.Generic.List<int>>()
         };
 
-        // Create simple 5x5 map
         for (int y = 0; y < 5; y++)
         {
-            fallbackMap.tiles.Add(new System.Collections.Generic.List<int>());
+            var row = new System.Collections.Generic.List<int>();
             for (int x = 0; x < 5; x++)
             {
                 if (x == 0 || x == 4 || y == 0 || y == 4)
-                    fallbackMap.tiles[y].Add(1); // Wall
+                    row.Add(1); // Wall
                 else if (x == 1 && y == 1)
-                    fallbackMap.tiles[y].Add(3); // Player start
+                    row.Add(3); // Player start
                 else if (x == 3 && y == 3)
-                    fallbackMap.tiles[y].Add(2); // Goal
+                    row.Add(2); // Goal
                 else
-                    fallbackMap.tiles[y].Add(0); // Empty space
+                    row.Add(0); // Empty
             }
+            fallbackMap.tiles.Add(row);
         }
 
         allMaps.maps.Add(fallbackMap);
-        Debug.Log("✓ Fallback map created");
+        if (debugMode)
+            Debug.Log("Fallback map created");
     }
 
     public MapData GetMap(string mapId)
@@ -184,15 +164,9 @@ public class MapManager : MonoBehaviour
         MapData map = allMaps.maps.Find(m => m.id == mapId);
         if (map == null)
         {
-            Debug.LogError($"Map '{mapId}' not found!");
-            Debug.LogError($"Available maps: {GetAvailableMapIds()}");
-
-            // Return first map as fallback
+            Debug.LogError($"Map '{mapId}' not found! Using fallback map.");
             if (allMaps.maps.Count > 0)
-            {
-                Debug.Log($"Using fallback map: {allMaps.maps[0].id}");
                 return allMaps.maps[0];
-            }
         }
 
         return map;
@@ -202,25 +176,18 @@ public class MapManager : MonoBehaviour
     {
         if (allMaps?.maps == null) return "None";
 
-        string[] ids = new string[allMaps.maps.Count];
+        var ids = new string[allMaps.maps.Count];
         for (int i = 0; i < allMaps.maps.Count; i++)
-        {
             ids[i] = allMaps.maps[i].id;
-        }
+
         return string.Join(", ", ids);
     }
 
-    public int GetMapCount()
-    {
-        return allMaps?.maps?.Count ?? 0;
-    }
+    public int GetMapCount() => allMaps?.maps?.Count ?? 0;
 
     // Editor utilities
     [ContextMenu("Reload Maps")]
-    public void ReloadMaps()
-    {
-        LoadAllMaps();
-    }
+    public void ReloadMaps() => LoadAllMaps();
 
     [ContextMenu("Show Available Maps")]
     public void ShowAvailableMaps()
