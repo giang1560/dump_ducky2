@@ -6,7 +6,7 @@ public class MenuUIManager : MonoBehaviour
 
     public void OnPlayButton()
     {
-        SceneManager.LoadScene("Select Level");
+        SceneManager.LoadScene("LevelSelect");
     }
 
     public void OnSettingButton()
