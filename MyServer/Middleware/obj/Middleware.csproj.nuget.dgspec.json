@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\khanh\\source\\repos\\Middleware\\Middleware.csproj": {}
+    "C:\\Users\\khanh\\Desktop\\Giang\\dump_ducky2\\MyServer\\Middleware\\Middleware.csproj": {}
   },
   "projects": {
-    "C:\\Users\\khanh\\source\\repos\\Middleware\\Middleware.csproj": {
+    "C:\\Users\\khanh\\Desktop\\Giang\\dump_ducky2\\MyServer\\Middleware\\Middleware.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\khanh\\source\\repos\\Middleware\\Middleware.csproj",
+        "projectUniqueName": "C:\\Users\\khanh\\Desktop\\Giang\\dump_ducky2\\MyServer\\Middleware\\Middleware.csproj",
         "projectName": "Middleware",
-        "projectPath": "C:\\Users\\khanh\\source\\repos\\Middleware\\Middleware.csproj",
+        "projectPath": "C:\\Users\\khanh\\Desktop\\Giang\\dump_ducky2\\MyServer\\Middleware\\Middleware.csproj",
         "packagesPath": "C:\\Users\\khanh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\khanh\\source\\repos\\Middleware\\obj\\",
+        "outputPath": "C:\\Users\\khanh\\Desktop\\Giang\\dump_ducky2\\MyServer\\Middleware\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
