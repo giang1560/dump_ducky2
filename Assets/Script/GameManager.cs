@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,61 +10,66 @@ public class GameManager : MonoBehaviour
     [SerializeField] MapBuilder mapBuilder;
 
     [Header("Level Settings")]
-    [SerializeField] string[] levelIds = { "level1", "level2", "level3" };
+    [SerializeField] string[] levelIds = { "level1", "level2", "level3", "level4" };
     [SerializeField] bool autoLoadFirstLevel = true;
 
-    [Header("Debug Info")]
-    [SerializeField] bool showDebugInfo = true;
+    [Header("UI")]
+    public GameObject completionPopup;
+    public GameObject pauseMenu;
 
     private int currentLevelIndex = 0;
+    private string selectedLevelId = "";
 
     void Awake()
     {
-        // Singleton pattern
         if (Instance == null)
-        {
             Instance = this;
-        }
         else
-        {
             Destroy(gameObject);
-            return;
-        }
     }
 
     void Start()
     {
-        // Validate components
-        if (mapManager == null)
+        if (mapManager == null || mapBuilder == null)
         {
-            Debug.LogError("MapManager is not assigned!");
+            Debug.LogError("MapManager or MapBuilder is not assigned!");
             return;
         }
 
-        if (mapBuilder == null)
-        {
-            Debug.LogError("MapBuilder is not assigned!");
-            return;
-        }
+        // Kiểm tra xem có level được chọn từ Level Select không
+        CheckForSelectedLevel();
 
         if (autoLoadFirstLevel)
-        {
             LoadCurrentLevel();
-        }
+    }
 
-        if (showDebugInfo)
+    void CheckForSelectedLevel()
+    {
+        // Lấy level ID từ PlayerPrefs (được set từ Level Select)
+        selectedLevelId = PlayerPrefs.GetString("SelectedLevelId", "");
+
+        if (!string.IsNullOrEmpty(selectedLevelId))
         {
-            Debug.Log($"GameManager initialized. Available levels: {string.Join(", ", levelIds)}");
+            // Tìm index của level được chọn
+            for (int i = 0; i < levelIds.Length; i++)
+            {
+                if (levelIds[i] == selectedLevelId)
+                {
+                    currentLevelIndex = i;
+                    Debug.Log($"Starting with selected level: {selectedLevelId} (index: {i})");
+                    break;
+                }
+            }
+
+            // Xóa PlayerPrefs sau khi sử dụng
+            PlayerPrefs.DeleteKey("SelectedLevelId");
         }
     }
 
     public void LoadCurrentLevel()
     {
         if (currentLevelIndex >= levelIds.Length)
-        {
-            Debug.LogWarning("No more levels to load!");
             return;
-        }
 
         string levelId = levelIds[currentLevelIndex];
         MapData map = mapManager.GetMap(levelId);
@@ -71,11 +77,7 @@ public class GameManager : MonoBehaviour
         if (map != null)
         {
             mapBuilder.Build(map);
-
-            if (showDebugInfo)
-            {
-                Debug.Log($"✓ Loaded level {currentLevelIndex + 1}/{levelIds.Length}: {levelId}");
-            }
+            Debug.Log($"Loaded level: {levelId}");
         }
         else
         {
@@ -86,7 +88,6 @@ public class GameManager : MonoBehaviour
     public void NextLevel()
     {
         currentLevelIndex++;
-
         if (currentLevelIndex < levelIds.Length)
         {
             LoadCurrentLevel();
@@ -100,11 +101,6 @@ public class GameManager : MonoBehaviour
     public void RestartLevel()
     {
         LoadCurrentLevel();
-
-        if (showDebugInfo)
-        {
-            Debug.Log($"Restarted level: {levelIds[currentLevelIndex]}");
-        }
     }
 
     public void PreviousLevel()
@@ -114,77 +110,71 @@ public class GameManager : MonoBehaviour
             currentLevelIndex--;
             LoadCurrentLevel();
         }
-        else
-        {
-            Debug.Log("Already at first level!");
-        }
-    }
-
-    public void LoadSpecificLevel(int levelIndex)
-    {
-        if (levelIndex >= 0 && levelIndex < levelIds.Length)
-        {
-            currentLevelIndex = levelIndex;
-            LoadCurrentLevel();
-        }
-        else
-        {
-            Debug.LogError($"Invalid level index: {levelIndex}. Available: 0-{levelIds.Length - 1}");
-        }
     }
 
     public void LoadSpecificLevel(string levelId)
     {
+        int index = -1;
         for (int i = 0; i < levelIds.Length; i++)
         {
             if (levelIds[i] == levelId)
             {
-                currentLevelIndex = i;
-                LoadCurrentLevel();
-                return;
+                index = i;
+                break;
             }
         }
 
-        Debug.LogError($"Level ID '{levelId}' not found in level list!");
+        if (index != -1)
+        {
+            currentLevelIndex = index;
+            LoadCurrentLevel();
+        }
+        else
+        {
+            Debug.LogError($"Level ID '{levelId}' not found!");
+        }
     }
 
     void OnAllLevelsCompleted()
     {
-        Debug.Log("🎉 All levels completed!");
-
-        // You can add completion logic here:
-        // - Show completion screen
-        // - Load main menu
-        // - Reset to first level
-        // - etc.
-
-        // For now, just reset to first level
-        currentLevelIndex = 0;
-        Debug.Log("Returning to first level...");
-        LoadCurrentLevel();
+        if (completionPopup != null)
+            completionPopup.SetActive(true);
+        else
+            Debug.Log("All levels completed!");
     }
 
-    // Public getters for UI or other systems
+    // Các hàm UI mới
+    public void PauseGame()
+    {
+        Time.timeScale = 0f;
+        if (pauseMenu != null)
+            pauseMenu.SetActive(true);
+    }
+
+    public void ResumeGame()
+    {
+        Time.timeScale = 1f;
+        if (pauseMenu != null)
+            pauseMenu.SetActive(false);
+    }
+
+    public void BackToLevelSelect()
+    {
+        Time.timeScale = 1f; // Đảm bảo timescale normal
+        SceneManager.LoadScene("LevelSelect"); // Tên scene level select
+    }
+
+    public void BackToMainMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("MainMenu");
+    }
+
+    // Public getters
     public int CurrentLevelIndex => currentLevelIndex;
     public string CurrentLevelId => currentLevelIndex < levelIds.Length ? levelIds[currentLevelIndex] : "";
     public int TotalLevels => levelIds.Length;
     public bool IsLastLevel => currentLevelIndex >= levelIds.Length - 1;
     public bool IsFirstLevel => currentLevelIndex == 0;
-
-    // Debug methods
-    [ContextMenu("Load Next Level")]
-    void DebugNextLevel() => NextLevel();
-
-    [ContextMenu("Restart Current Level")]
-    void DebugRestartLevel() => RestartLevel();
-
-    [ContextMenu("Load Previous Level")]
-    void DebugPreviousLevel() => PreviousLevel();
-
-    [ContextMenu("Show Level Info")]
-    void ShowLevelInfo()
-    {
-        Debug.Log($"Current Level: {currentLevelIndex + 1}/{levelIds.Length} ({CurrentLevelId})");
-        Debug.Log($"Available Maps: {mapManager.GetAvailableMapIds()}");
-    }
+    public string SelectedLevelId => selectedLevelId;
 }

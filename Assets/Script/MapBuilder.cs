@@ -19,23 +19,16 @@ public class MapBuilder : MonoBehaviour
 
     void Awake()
     {
-        // Tự động tạo MapParent nếu chưa được assign
         if (mapParent == null)
-        {
             CreateMapParent();
-        }
     }
 
     void CreateMapParent()
     {
         GameObject mapContainer = new GameObject("MapParent");
         mapParent = mapContainer.transform;
-
-        // Đặt MapParent tại vị trí này
-        mapParent.SetParent(this.transform);
+        mapParent.SetParent(transform);
         mapParent.localPosition = mapOffset;
-
-        Debug.Log("MapParent created automatically");
     }
 
     public void Build(MapData data)
@@ -52,21 +45,15 @@ public class MapBuilder : MonoBehaviour
             return;
         }
 
-        Debug.Log($"Building map: {data.id} ({data.width}x{data.height})");
-
-        // Xoá map cũ
         ClearMap();
-
-        // Build map mới
         BuildTiles(data);
-
-        // Center camera nếu có
-        //CenterCamera(data);
+        //CenterCamera(data); // Bật nếu cần
     }
 
     void ClearMap()
     {
-        // Xóa tất cả tiles cũ
+        if (mapParent == null) return;
+
         foreach (Transform child in mapParent)
         {
             if (Application.isPlaying)
@@ -75,7 +62,6 @@ public class MapBuilder : MonoBehaviour
                 DestroyImmediate(child.gameObject);
         }
 
-        // Xóa player và goal cũ
         if (currentPlayer != null)
         {
             if (Application.isPlaying)
@@ -95,36 +81,36 @@ public class MapBuilder : MonoBehaviour
 
     void BuildTiles(MapData data)
     {
+        float centerX = (data.width - 1) / 2f;
+        float centerY = (data.height - 1) / 2f;
+
         for (int y = 0; y < data.height; y++)
         {
             for (int x = 0; x < data.width; x++)
             {
                 int type = data.tiles[y][x];
-                Vector3 pos = new Vector3(x * tileSize, -y * tileSize, 0) + mapOffset;
+                Vector3 pos = new Vector3((x - centerX) * tileSize, -(y - centerY) * tileSize, 0) + mapOffset;
 
                 switch (type)
                 {
-                    case 0: // Đất trống - có thể tạo floor tile
-                        // Có thể thêm floor tile ở đây nếu muốn
+                    case 0:
+                        // Có thể thêm tile sàn nếu muốn
                         break;
-
-                    case 1: // Tường
+                    case 1:
                         if (tilePrefab != null)
                         {
                             GameObject wall = Instantiate(tilePrefab, pos, Quaternion.identity, mapParent);
                             wall.name = $"Wall_{x}_{y}";
                         }
                         break;
-
-                    case 2: // Đích
+                    case 2:
                         if (goalPrefab != null)
                         {
                             currentGoal = Instantiate(goalPrefab, pos, Quaternion.identity);
                             currentGoal.name = "Goal";
                         }
                         break;
-
-                    case 3: // Player
+                    case 3:
                         if (playerPrefab != null)
                         {
                             currentPlayer = Instantiate(playerPrefab, pos, Quaternion.identity);
@@ -134,41 +120,38 @@ public class MapBuilder : MonoBehaviour
                 }
             }
         }
-
-        Debug.Log($"Map built: {data.width}x{data.height}, Total tiles: {data.width * data.height}");
     }
+
 
     void CenterCamera(MapData data)
     {
         Camera mainCam = Camera.main;
-        if (mainCam != null)
-        {
-            Vector3 centerPos = new Vector3(
-                (data.width - 1) * tileSize * 0.5f,
-                -(data.height - 1) * tileSize * 0.5f,
-                mainCam.transform.position.z
-            ) + mapOffset;
+        if (mainCam == null) return;
 
-            mainCam.transform.position = centerPos;
-        }
+        float centerX = ((data.width - 1) / 2f) * tileSize;
+        float centerY = -((data.height - 1) / 2f) * tileSize;
+
+        Vector3 centerPos = new Vector3(centerX, centerY, mainCam.transform.position.z) + mapOffset;
+
+        mainCam.transform.position = centerPos;
     }
 
-    // Method để test trong Editor
+
     [ContextMenu("Test Build Sample Map")]
     void TestBuildSampleMap()
     {
-        MapData testMap = new MapData
+        var testMap = new MapData
         {
             id = "test",
             width = 5,
             height = 5,
             tiles = new System.Collections.Generic.List<System.Collections.Generic.List<int>>
             {
-                new System.Collections.Generic.List<int> {1, 1, 1, 1, 1},
-                new System.Collections.Generic.List<int> {1, 3, 0, 0, 1},
-                new System.Collections.Generic.List<int> {1, 0, 1, 0, 1},
-                new System.Collections.Generic.List<int> {1, 0, 0, 2, 1},
-                new System.Collections.Generic.List<int> {1, 1, 1, 1, 1}
+                new() {1, 1, 1, 1, 1},
+                new() {1, 3, 0, 0, 1},
+                new() {1, 0, 1, 0, 1},
+                new() {1, 0, 0, 2, 1},
+                new() {1, 1, 1, 1, 1}
             }
         };
 

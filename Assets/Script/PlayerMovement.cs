@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class Movement : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
     public float moveSpeed = 5f;
     private bool isSliding = false;
@@ -34,27 +34,43 @@ public class Movement : MonoBehaviour
 
         while (true)
         {
-            Vector2 targetPos = (Vector2)transform.position + moveDir;
-            // Raycast để kiểm tra nếu có vật cản
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, moveDir, 1f, LayerMask.GetMask("Obstacle"));
-            if (hit.collider != null)
-                break;
+            Vector2 nextPos = (Vector2)transform.position + moveDir;
 
-            // Di chuyển từng ô một
-            float elapsed = 0f;
-            Vector2 startPos = transform.position;
-            Vector2 endPos = targetPos;
-
-            while (elapsed < 1f / moveSpeed)
+            // 🔍 Kiểm tra nếu ô kế tiếp là đích → dừng lại ngay
+            Collider2D goalCheck = Physics2D.OverlapCircle(nextPos, 0.1f, LayerMask.GetMask("Goal"));
+            if (goalCheck != null)
             {
-                elapsed += Time.deltaTime;
-                transform.position = Vector2.Lerp(startPos, endPos, elapsed * moveSpeed);
-                yield return null;
+                Debug.Log("🚩 Phía trước là ô đích, dừng lại tại vị trí hiện tại.");
+                break;
             }
 
-            transform.position = endPos;
+            // 🔍 Nếu là vật cản thì dừng
+            Collider2D obstacleCheck = Physics2D.OverlapCircle(nextPos, 0.1f, LayerMask.GetMask("Obstacle"));
+            if (obstacleCheck != null)
+            {
+                break;
+            }
+
+            // Nếu không, di chuyển đến ô tiếp theo
+            yield return StartCoroutine(MoveOneStep(nextPos));
         }
 
         isSliding = false;
+    }
+
+    System.Collections.IEnumerator MoveOneStep(Vector2 targetPos)
+    {
+        float elapsed = 0f;
+        Vector2 startPos = transform.position;
+        Vector2 endPos = targetPos;
+
+        while (elapsed < 1f / moveSpeed)
+        {
+            elapsed += Time.deltaTime;
+            transform.position = Vector2.Lerp(startPos, endPos, elapsed * moveSpeed);
+            yield return null;
+        }
+
+        transform.position = endPos;
     }
 }
