@@ -83,3 +83,25 @@ crashlytics-build.properties
 /[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db.meta
 /[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers
 /[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
+
+# ===============================================================
+# === Custom Rules for ASP.NET Core Server in /MyServer/ folder ===
+# ===============================================================
+
+# First, ignore the server's build output folders explicitly.
+# The leading slash makes the path relative to the root of the repo.
+/MyServer/bin/
+/MyServer/obj/
+/MyServer/.vs/
+
+# --- IMPORTANT ---
+# Now, UN-ignore (negate the rule for) the essential project files
+# that the default Unity gitignore might be ignoring.
+#
+# This ensures your server's project file IS tracked.
+!/MyServer/*.csproj
+!/MyServer/*.sln
+
+# Also un-ignore common configuration files if they exist.
+!/MyServer/appsettings.json
+!/MyServer/appsettings.Development.json

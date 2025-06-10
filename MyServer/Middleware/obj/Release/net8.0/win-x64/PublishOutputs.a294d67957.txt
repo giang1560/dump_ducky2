@@ -1,0 +1,5 @@
+C:\Users\khanh\source\repos\Middleware\bin\Release\net8.0\win-x64\publish\appsettings.Development.json
+C:\Users\khanh\source\repos\Middleware\bin\Release\net8.0\win-x64\publish\appsettings.json
+C:\Users\khanh\source\repos\Middleware\bin\Release\net8.0\win-x64\publish\Middleware.pdb
+C:\Users\khanh\source\repos\Middleware\bin\Release\net8.0\win-x64\publish\aspnetcorev2_inprocess.dll
+C:\Users\khanh\source\repos\Middleware\bin\Release\net8.0\win-x64\publish\Middleware.exe
