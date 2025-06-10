@@ -63,13 +63,6 @@ public class LevelButton : MonoBehaviour
             completedIcon.SetActive(isCompleted);
     }
 
-    public void OnButtonClick()
-    {
-        if (isLocked) return;
-
-        var levelSelect = Object.FindFirstObjectByType<LevelSelectManager>();
-        levelSelect?.LoadLevel(levelId);
-    }
 
     public void OnButtonHover()
     {

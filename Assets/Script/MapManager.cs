@@ -1,8 +1,9 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.IO;
 using UnityEngine;
 
-public class MapManager : MonoBehaviour
+public class MapManager : Singleton<MapManager>
 {
     [Header("JSON File Settings")]
     [SerializeField] string jsonFileName = "maps.json";
@@ -11,12 +12,37 @@ public class MapManager : MonoBehaviour
     [SerializeField] bool debugMode = true;
 
     private MapCollection allMaps;
+    private int currentMapIndex = 0;
 
-    void Awake()
+
+    protected override void Awake()
     {
         LoadAllMaps();
+
+        if (PlayerPrefs.HasKey("CurrentMapIndex"))
+        {
+            currentMapIndex = PlayerPrefs.GetInt("CurrentMapIndex");
+            if (debugMode)
+                Debug.Log($"Loaded current map index from PlayerPrefs: {currentMapIndex}");
+        }
+        else
+        {
+            if (allMaps?.maps != null && allMaps.maps.Count > 0)
+            {
+                currentMapIndex = 0; // Default to first map
+                PlayerPrefs.SetInt("CurrentMapIndex", currentMapIndex);
+                if (debugMode)
+                    Debug.Log("No current map index found, defaulting to 0");
+            }
+        }
+
+        base.Awake();
     }
 
+    /// <summary>
+    /// Loads all maps from the JSON file in StreamingAssets.
+    /// If the file is not found or invalid, it creates a fallback map.
+    /// </summary>
     void LoadAllMaps()
     {
         string jsonContent = LoadFromStreamingAssets();
@@ -54,6 +80,11 @@ public class MapManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Loads the JSON file from the StreamingAssets folder.
+    /// This method assumes the file is in the correct format and exists.
+    /// </summary>
+    /// <returns></returns>
     string LoadFromStreamingAssets()
     {
         string path = Path.Combine(Application.streamingAssetsPath, jsonFileName);
@@ -78,6 +109,10 @@ public class MapManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Validates all maps in the collection.
+    /// Checks for null or empty IDs, mismatched dimensions, and logs warnings for any issues found.
+    /// </summary>
     void ValidateMaps()
     {
         for (int i = allMaps.maps.Count - 1; i >= 0; i--)
@@ -116,6 +151,10 @@ public class MapManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Creates a fallback map with a simple 5x5 grid.
+    /// The fallback map contains walls around the edges, a player start at (1,1), and a goal at (3,3).
+    /// </summary>
     void CreateFallbackMap()
     {
         allMaps = new MapCollection
@@ -153,23 +192,79 @@ public class MapManager : MonoBehaviour
             Debug.Log("Fallback map created");
     }
 
-    public MapData GetMap(string mapId)
+    /// <summary>
+    /// Gets the current map based on the stored index.
+    /// If the index is out of bounds, it defaults to the first map.
+    /// </summary>
+    /// <returns></returns>
+    public MapData GetCurrentMap()
     {
-        if (allMaps?.maps == null)
+        if (allMaps?.maps == null || allMaps.maps.Count == 0)
         {
-            Debug.LogError("Map database not loaded!");
+            Debug.LogError("No maps available!");
             return null;
         }
 
-        MapData map = allMaps.maps.Find(m => m.id == mapId);
-        if (map == null)
+        if (currentMapIndex < 0 || currentMapIndex >= allMaps.maps.Count)
         {
-            Debug.LogError($"Map '{mapId}' not found! Using fallback map.");
-            if (allMaps.maps.Count > 0)
-                return allMaps.maps[0];
+            Debug.LogWarning($"Current map index {currentMapIndex} is out of bounds, defaulting to 0");
+            currentMapIndex = 0;
         }
 
-        return map;
+        EventBus<MapChangedEvent>.Raise(new MapChangedEvent(currentMapIndex));
+        return allMaps.maps[currentMapIndex];
+    }
+
+    /// <summary>
+    /// Gets the next map in the collection.
+    /// Wraps around to the first map if the current index exceeds the last map.
+    /// </summary>
+    /// <returns></returns>
+    public MapData GetNextMap()
+    {
+        if (allMaps?.maps == null || allMaps.maps.Count == 0)
+        {
+            Debug.LogError("No maps available!");
+            return null;
+        }
+
+        currentMapIndex = (currentMapIndex + 1) % allMaps.maps.Count;
+        PlayerPrefs.SetInt("CurrentMapIndex", currentMapIndex);
+        EventBus<MapChangedEvent>.Raise(new MapChangedEvent(currentMapIndex));
+        return allMaps.maps[currentMapIndex];
+    }
+
+    /// <summary>
+    /// Gets the previous map in the collection.
+    /// Wraps around to the last map if the current index is 0.
+    /// </summary>
+    /// <returns></returns>
+    public MapData GetPreviousMap()
+    {
+        if (allMaps?.maps == null || allMaps.maps.Count == 0)
+        {
+            Debug.LogError("No maps available!");
+            return null;
+        }
+
+        currentMapIndex = (currentMapIndex - 1 + allMaps.maps.Count) % allMaps.maps.Count;
+        PlayerPrefs.SetInt("CurrentMapIndex", currentMapIndex);
+        EventBus<MapChangedEvent>.Raise(new MapChangedEvent(currentMapIndex));
+        return allMaps.maps[currentMapIndex];
+    }
+
+    public void SetCurrentMapIndex(int index)
+    {
+        if (allMaps?.maps == null || index < 0 || index >= allMaps.maps.Count)
+        {
+            Debug.LogError($"Invalid map index: {index}");
+            return;
+        }
+
+        currentMapIndex = index;
+        PlayerPrefs.SetInt("CurrentMapIndex", currentMapIndex);
+        if (debugMode)
+            Debug.Log($"Current map index set to: {currentMapIndex}");
     }
 
     public string GetAvailableMapIds()
@@ -184,14 +279,4 @@ public class MapManager : MonoBehaviour
     }
 
     public int GetMapCount() => allMaps?.maps?.Count ?? 0;
-
-    // Editor utilities
-    [ContextMenu("Reload Maps")]
-    public void ReloadMaps() => LoadAllMaps();
-
-    [ContextMenu("Show Available Maps")]
-    public void ShowAvailableMaps()
-    {
-        Debug.Log($"Available Maps ({GetMapCount()}): {GetAvailableMapIds()}");
-    }
 }
